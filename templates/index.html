@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peony Identifier</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #8b0000;
+        }
+        #video, #canvas {
+            border: 2px solid #8b0000;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #8b0000;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px;
+        }
+        button:hover {
+            background-color: #a52a2a;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #8b0000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Peony Identifier</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button id="snap">Snap Photo</button>
+    <button id="restart">Restart Camera</button>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <button id="identify">Identify Peony</button>
+    <div id="result"></div>
+
+    <script>
+        let stream = null;
+
+        // Function to start the camera
+        function startCamera() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true }).then(function (videoStream) {
+                    stream = videoStream;
+                    var video = document.getElementById('video');
+                    video.srcObject = stream;
+                    video.play();
+                }).catch(function (error) {
+                    console.error('Error accessing the camera:', error);
+                });
+            }
+        }
+
+        // Start the camera on page load
+        startCamera();
+
+        // Capture photo
+        document.getElementById('snap').addEventListener('click', function () {
+            var canvas = document.getElementById('canvas');
+            var context = canvas.getContext('2d');
+            var video = document.getElementById('video');
+            context.drawImage(video, 0, 0, 640, 480);
+
+            // Stop the video stream
+            if (stream) {
+                let tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+        });
+
+        // Restart the camera
+        document.getElementById('restart').addEventListener('click', function () {
+            // Clear the current video and restart the camera
+            document.getElementById('video').srcObject = null;
+            startCamera();
+        });
+
+        // Identify Peony
+        document.getElementById('identify').addEventListener('click', function () {
+            var canvas = document.getElementById('canvas');
+            var dataURL = canvas.toDataURL('image/png');
+
+            fetch('/identify', {
+                method: 'POST',
+                body: JSON.stringify({ image: dataURL }),
+                headers: { 'Content-Type': 'application/json' }
+            }).then(response => response.json()).then(data => {
+                document.getElementById('result').textContent = "Predicted Class: " + data.class;
+            }).catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').textContent = "An error occurred. Please try again.";
+            });
+        });
+    </script>
+</body>
+</html>
